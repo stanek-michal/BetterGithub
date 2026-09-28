@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% from "_macros.html" import who, thread, sumbtn with context %}
+{% set is_pr = it.kind == 'pr' %}
+{% set base = '/' ~ it.repo ~ ('/pull/' if is_pr else '/issues/') ~ it.number %}
+{% block title %}#{{ it.number }} {{ it.title }}{% endblock %}
+{% block bodyclass %}page-item {{ '' if full else 'reduced' }} {{ 'split' if split else 'unified' }}{% endblock %}
+{% block help %}item:    v  reduced/full view      c  conversation     d  files/diff     R  refresh from GitHub
+         u  back to list          o  open on github.com
+search:  /  search (Enter)          n/N  next/prev match    esc  clear   (smartcase; diff search loads all files)
+convo:   j/k  next/prev entry     S  LLM summary ⇄ original for selected entry (or ✦ summary button)
+diff:    j/k  next/prev file      ]/[  next/prev hunk   x  collapse/expand file   f  full file   s  split/unified
+         i  toggle "since last review"   m  mark current head as reviewed{% endblock %}
+{% block main %}
+<div id="item" data-repo="{{ it.repo }}" data-number="{{ it.number }}" data-url="{{ it.url }}" data-tab="{{ tab }}" data-since="{{ since.sha if since else '' }}">
+<h1>{{ it.title }} <span class="muted">#{{ it.number }}</span></h1>
+<div class="subhead">
+  <span class="state state-{{ it.state|lower }}">{{ 'draft' if it.is_draft and it.state == 'OPEN' else it.state|lower }}</span>
+  {{ it.author }}
+  {% if is_pr %}<span class="muted">{{ it.head_ref }} → {{ it.base_ref }}</span>
+    <span class="add">+{{ it.additions }}</span> <span class="del">-{{ it.deletions }}</span>
+    {% if it.ci_state %}<span class="ci ci-{{ it.ci_state|lower }}">● CI {{ it.ci_state|lower }}</span>{% endif %}
+    {% if it.review_decision %}<span class="{{ 'ok' if it.review_decision == 'APPROVED' else 'err' if it.review_decision == 'CHANGES_REQUESTED' else 'muted' }}">{{ it.review_decision|lower|replace('_', ' ') }}</span>{% endif %}
+  {% endif %}
+  {% for l in labels %}<span class="label" style="background:#{{ l.color }};color:{{ l.color|label_fg }}">{{ l.name }}</span>{% endfor %}
+  {% if rr %}<span class="muted">reviewers: {{ rr|join(', ') }}</span>{% endif %}
+  {% if assignees %}<span class="muted">assignees: {{ assignees|join(', ') }}</span>{% endif %}
+  <a href="{{ it.url }}" class="muted">github ↗</a>
+</div>
+<nav class="tabs itemtabs">
+  <a href="{{ base }}" class="{{ 'on' if tab != 'files' }}"><kbd>c</kbd> conversation</a>
+  {% if is_pr %}<a href="{{ base }}?tab=files" class="{{ 'on' if tab == 'files' and not since }}"><kbd>d</kbd> files ({{ file_count }})</a>
+    {% if since and since.source == 'selected commit' %}<a href="#" class="on">since {{ since.sha[:7] }}</a>{% endif %}
+    {% if baseline and baseline.sha != it.head_sha %}<a href="{{ base }}?tab=files&since=1" class="{{ 'on' if since and since.source != 'selected commit' }}"><kbd>i</kbd> since last review ({{ baseline.source }}, {{ baseline.at|rel }} ago)</a>
+    {% elif baseline %}<span class="muted">reviewed at current head ✓</span>{% endif %}
+  {% endif %}
+  <span class="viewmode">
+    <a href="#" id="togglefull"><kbd>v</kbd> <span class="lbl-reduced">reduced</span><span class="lbl-full">full</span></a>
+    <span class="muted hiddencounts">hiding {{ counts.author }} by filtered authors · {{ counts.resolved }} resolved/outdated threads · {{ counts.noise }} events/commands</span>
+  </span>
+</nav>
+
+{% if tab != 'files' %}
+<div id="conv">
+  <div class="entry desc">
+    <div class="chead">{{ who(it.author, viewer, patterns) }} <span class="muted">{{ it.created_at|rel }} ago</span>{{ sumbtn('desc', d.body_html) }}</div>
+    {% if body_hidden %}<details class="body"><summary class="muted">description by filtered author (click to expand)</summary>{{ d.body_html|safe }}</details>
+    {% else %}<div class="body">{{ (d.body_html or '<p class="muted">No description.</p>')|safe }}</div>{% endif %}
+  </div>
+  {% for e in entries %}
+    {% if e.type == 'comment' %}
+    <div class="entry comment{{ ' rh' if e.rh }}{{ ' hiddenauthor' if e.rh == 'author' }}{{ ' cmd' if e.rh == 'noise' }}" id="e-{{ e.id }}">
+      <div class="chead">{{ who(e.author, viewer, patterns) }} <a class="muted" href="{{ e.url }}">{{ e.at|rel }} ago</a>{{ sumbtn(e.id, e.body) }}</div>
+      <div class="body">{{ e.body|safe }}</div>
+    </div>
+    {% elif e.type == 'review' %}
+    <div class="entry review review-{{ e.state|lower }}{{ ' rh' if e.rh }}{{ ' hiddenauthor' if e.rh == 'author' }}" id="e-{{ e.id }}">
+      <div class="chead">{{ who(e.author, viewer, patterns) }}
+        <span class="rstate">{{ {'APPROVED': '✓ approved', 'CHANGES_REQUESTED': '✗ requested changes', 'COMMENTED': 'reviewed', 'DISMISSED': 'review dismissed'}.get(e.state, e.state|lower) }}</span>
+        <a class="muted" href="{{ e.url }}">{{ e.at|rel }} ago</a>{{ sumbtn(e.id, e.body) }}</div>
+      {% if e.body and e.body.strip() %}<div class="body">{{ e.body|safe }}</div>{% endif %}
+      {% for t in e.threads %}{{ thread(t, viewer, patterns) }}{% endfor %}
+    </div>
+    {% elif e.type == 'thread' %}
+    <div class="entry{{ ' rh' if e.rh }}" id="e-{{ e.id }}">{{ thread(e.thread, viewer, patterns) }}</div>
+    {% elif e.type == 'commits' %}
+    <div class="entry commits" id="e-{{ e.id }}">
+      {% for cm in e.commits %}<div class="commit"><code>{{ cm.short }}</code>{% if cm.sha != it.head_sha %} <a href="{{ base }}?tab=files&since={{ cm.sha }}" title="diff of PR files from this commit to head">Δ</a>{% endif %} {{ cm.text }} <span class="muted">{{ cm.author }} · {{ cm.at|rel }} ago</span></div>{% endfor %}
+    </div>
+    {% else %}
+    <div class="entry event ev-{{ e.type }}{{ ' rh' if e.rh }}" id="e-{{ e.id }}">
+      <span class="muted">•</span> {{ e.author }} {% if e.type == 'force_push' and e.before %}<a href="{{ base }}?tab=files&since={{ e.before }}" title="what changed in this force-push (and after), limited to PR files">Δ</a> {% endif %}{% if e.url %}<a href="{{ e.url }}">{{ e.text }}</a>{% else %}{{ e.text }}{% endif %} <span class="muted">{{ e.at|rel }} ago</span>
+    </div>
+    {% endif %}
+  {% endfor %}
+</div>
+{% else %}
+<div id="files">
+  {% if since %}<div class="note">Changes in this PR's files between <code>{{ since.sha[:10] }}</code> ({{ since.source }}) and <code>{{ it.head_sha[:10] }}</code>. If the branch was rebased, upstream changes to these files show up too.</div>{% endif %}
+  <div class="filelist">
+    {% for f in files %}<a href="#f{{ f.idx }}" class="fl{{ ' unchanged' if f.unchanged }}"><span class="st st-{{ f.status }}">{{ f.status[0]|upper }}</span> {{ f.filename }} <span class="add">+{{ f.additions }}</span><span class="del">-{{ f.deletions }}</span>{% if f.thread_count %} <span class="muted">💬{{ f.thread_count }}</span>{% endif %}</a>{% endfor %}
+  </div>
+  {% for f in files %}
+  <section class="file{{ ' collapsed' if f.collapsed }}" id="f{{ f.idx }}">
+    <div class="fhead"><a href="#" class="ftoggle">▾</a> <span class="st st-{{ f.status }}">{{ f.status }}</span>
+      {% if f.previous_filename %}<span class="muted">{{ f.previous_filename }} →</span>{% endif %} <b>{{ f.filename }}</b>
+      <span class="add">+{{ f.additions }}</span><span class="del">-{{ f.deletions }}</span>
+      {% if f.collapsed and not f.unchanged %}<span class="muted chint">(collapsed — x or click ▸ to expand)</span>{% endif %}
+      {% if f.status != 'removed' and not f.unchanged %}<a href="#" class="fullbtn" data-url="/frag/{{ it.repo }}/{{ it.number }}/file/{{ f.idx }}?full=1{{ '&since=' ~ since.sha if since else '' }}"><kbd>f</kbd> full file</a>{% endif %}
+    </div>
+    <div class="fbody"{% if f.lazy %} data-lazy="/frag/{{ it.repo }}/{{ it.number }}/file/{{ f.idx }}{{ '?since=' ~ since.sha if since else '' }}"{% endif %}>
+      {% if not f.lazy %}{% include "_filebody.html" %}{% endif %}
+    </div>
+  </section>
+  {% endfor %}
+</div>
+{% endif %}
+</div>
+{% endblock %}

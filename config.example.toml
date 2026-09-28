@@ -1,0 +1,70 @@
+# BetterGithub config. Copy this file to config.toml and edit it. Restart `uv run bgh` after editing.
+
+port = 7777
+sync_interval_seconds = 120
+
+# Repos to sync. All open PRs get fully prefetched (timeline + diff).
+# Open issues get list-synced; issue details are prefetched if they involve you
+# or were updated recently, otherwise fetched on open.
+repos = ["owner/repo"]   # e.g. ["python/cpython", "astral-sh/uv"]
+issue_prefetch_days = 14
+
+# Accounts hidden in the reduced view. fnmatch-style globs, case-insensitive.
+# Bot accounts are matched as "name[bot]" (e.g. "github-actions[bot]").
+# You can also hide/unhide authors from the UI (stored in the local DB).
+hidden_authors = [
+    "*[bot]",
+    "codecov*",
+    "sonar*",
+    "mergify*",
+    "copilot*",
+    "coderabbit*",
+]
+
+# Comments whose plain text matches any of these regexes are treated as noise in the
+# reduced view (e.g. CI trigger commands). Python regex, case-insensitive, searched from the start.
+hidden_comment_patterns = ['^/\w+\s*$', '^/(ci|test|backport|run)\b', '^@?(copilot|coderabbitai) review\b']
+
+# Labels not shown in the list view (still shown on the item page). Globs.
+list_hidden_labels = ["ci:*", "backport*", "dependencies"]
+
+# LLM summaries of long comments (the "✦ summary" button, or S on the selected entry).
+# Uses Gemini's OpenAI-compatible API. If api_key is unset, $GEMINI_API_KEY is used.
+[summarizer]
+# api_key = "..."
+model = "gemini-3.8-flash"
+base_url = "https://generativelanguage.googleapis.com/v1beta/openai"
+min_chars = 400            # only offer summaries for comments at least this long
+
+# Views shown as tabs on the list page (keys 1-9). All conditions are ANDed;
+# list-valued conditions match if ANY entry matches. Available keys:
+#   kind = "pr" | "issue"
+#   repos = [...]
+#   involves = ["review_requested", "review_requested_direct", "author", "assignee", "mentioned"]
+#   labels_any = [...]      labels_none = [...]
+#   paths_any = ["glob", ...]   (PRs only; matches changed file paths, e.g. "src/linux/*")
+#   authors = [...]         exclude_authors = [...]   (globs)
+#   draft = true | false
+#   state = "open" (default) | "closed" | "all"
+
+[[views]]
+name = "Mine"
+involves = ["review_requested", "author", "assignee", "mentioned"]
+
+[[views]]
+name = "Review requested"
+kind = "pr"
+involves = ["review_requested"]
+draft = false
+
+[[views]]
+name = "All PRs"
+kind = "pr"
+
+[[views]]
+name = "Issues"
+kind = "issue"
+
+[[views]]
+name = "Recently closed"
+state = "closed"

@@ -1,0 +1,26 @@
+{% from "_macros.html" import thread with context %}
+      {% for t in f.other_threads %}{{ thread(t, viewer, patterns) }}{% endfor %}
+      {% if not f.hunks %}<div class="muted pad">{{ 'No changes since last review.' if f.unchanged else 'No textual diff (binary, too large, or rename only).' }}</div>{% endif %}
+      <table class="diff">
+      {% if split %}<colgroup><col class="lnc"><col><col class="lnc"><col></colgroup>
+      {% else %}<colgroup><col class="lnc"><col class="lnc"><col><col class="zero"></colgroup>{% endif %}
+      {% for h in f.hunks %}
+        <tbody class="hunk-b">
+        <tr class="hh"><td colspan="4">{{ h.header }}</td></tr>
+        {% if split %}
+          {% for r in h.rows %}
+          <tr>
+            {% if r.left %}<td class="ln">{{ r.left[1] }}</td><td class="code c{{ r.left[0]|replace('-', 'd')|replace(' ', 'x') }}">{{ r.left[2] }}</td>{% else %}<td class="ln"></td><td class="code empty"></td>{% endif %}
+            {% if r.right %}<td class="ln">{{ r.right[1] }}</td><td class="code c{{ r.right[0]|replace('+', 'a')|replace(' ', 'x') }}">{{ r.right[2] }}</td>{% else %}<td class="ln"></td><td class="code empty"></td>{% endif %}
+          </tr>
+          {% if r.threads %}<tr class="trow"><td colspan="4">{% for t in r.threads %}{{ thread(t, viewer, patterns, False) }}{% endfor %}</td></tr>{% endif %}
+          {% endfor %}
+        {% else %}
+          {% for r in h.rows %}
+          <tr class="{{ {'+': 'a', '-': 'd', ' ': 'x'}[r.kind] }}"><td class="ln">{{ r.o or '' }}</td><td class="ln">{{ r.n or '' }}</td><td class="code" colspan="2">{{ r.kind }}{{ r.text }}</td></tr>
+          {% if r.threads %}<tr class="trow"><td colspan="4">{% for t in r.threads %}{{ thread(t, viewer, patterns, False) }}{% endfor %}</td></tr>{% endif %}
+          {% endfor %}
+        {% endif %}
+        </tbody>
+      {% endfor %}
+      </table>

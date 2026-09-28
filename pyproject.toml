@@ -1,0 +1,20 @@
+[project]
+name = "bgh"
+version = "0.1.0"
+description = "BetterGithub: a fast, local, read-only GitHub PR/issue viewer"
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+    "httpx>=0.27",
+    "jinja2>=3.1",
+]
+
+[project.scripts]
+bgh = "bgh.app:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

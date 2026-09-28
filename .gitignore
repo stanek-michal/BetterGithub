@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+*.db
+*.db-*
+# Personal config (repos, hidden authors, API keys). Start from config.example.toml.
+config.toml

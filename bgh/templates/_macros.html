@@ -1,0 +1,23 @@
+{% macro who(author, viewer, patterns) -%}
+<span class="who" style="--h:{{ author|hue }}">{{ author }}</span>
+{%- if author != viewer %}<a href="#" class="hidebtn" data-author="{{ author }}" title="hide/unhide this author in reduced view">⊘</a>{% endif %}
+{%- endmacro %}
+
+{% macro thread(t, viewer, patterns, show_hunk=True) %}
+<div class="thread{{ ' rh' if t.rh }}{{ ' resolved' if t.resolved }}{{ ' outdated' if t.outdated }}" id="t-{{ t.id }}">
+  <div class="thead"><span class="path">{{ t.path }}{% if t.line or t.original_line %}:{{ t.line or t.original_line }}{% endif %}</span>
+    {% if t.resolved %}<span class="badge">resolved</span>{% endif %}{% if t.outdated %}<span class="badge">outdated</span>{% endif %}
+  </div>
+  {% if show_hunk and t.diff_hunk %}<pre class="hunk">{{ t.diff_hunk.split('\n')[-6:]|join('\n') }}</pre>{% endif %}
+  {% for cm in t.comments %}
+  <div class="cmt{{ ' rh hiddenauthor' if cm.hidden }}" style="--h:{{ cm.author|hue }}">
+    <div class="chead">{{ who(cm.author, viewer, patterns) }} <a class="muted" href="{{ cm.url }}">{{ cm.at|rel }} ago</a>{{ sumbtn(cm.id, cm.body) }}</div>
+    <div class="body">{{ cm.body|safe }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% endmacro %}
+
+{% macro sumbtn(cid, html) -%}
+{%- if html and html|textlen >= sum_min %}<a href="#" class="sumbtn" data-cid="{{ cid }}" title="summarize with LLM (S)">✦ summary</a>{% endif -%}
+{%- endmacro %}
