@@ -13,6 +13,9 @@ export GEMINI_API_KEY=...            # optional: enables ✦ comment summaries
 uv run bgh                           # http://127.0.0.1:7777
 ```
 
+Edit `config.toml` and set `repos` to the repos you want to sync, e.g. `repos = ["python/cpython"]`.
+bgh won't start until you do. Everything else has sensible defaults.
+
 Configuration is in `config.toml`: repos, hidden authors, comment patterns treated as noise,
 list labels to hide, and views. Restart after editing it. `config.toml` and the local database
 (`bgh.db`) are gitignored, so your repos and synced data stay on your machine.

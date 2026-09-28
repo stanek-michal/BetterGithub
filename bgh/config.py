@@ -27,7 +27,10 @@ def load_config() -> Config:
         raise SystemExit(f"No {CONFIG_PATH.name} found. Copy config.example.toml to {CONFIG_PATH} and set your repos.")
     raw = tomllib.loads(CONFIG_PATH.read_text())
     known = Config.__dataclass_fields__.keys()
-    return Config(**{k: v for k, v in raw.items() if k in known})
+    cfg = Config(**{k: v for k, v in raw.items() if k in known})
+    if not cfg.repos or "owner/repo" in cfg.repos:
+        raise SystemExit(f'Set `repos` in {CONFIG_PATH} to the repos you want to sync, e.g. repos = ["python/cpython"].')
+    return cfg
 
 
 def gh_token() -> str:
