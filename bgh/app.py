@@ -146,7 +146,7 @@ async def index(request: Request, v: int = 0):
         if len(items) >= 500:
             break
     return templates.TemplateResponse(request, "list.html", {
-        "views": views, "v": v, "items": items, "status": syncer.status, "multi_repo": len(cfg.repos) > 1,
+        "views": views, "v": v, "items": items, "status": {**syncer.status, "wait": syncer.gh.wait_note()}, "multi_repo": len(cfg.repos) > 1,
     })
 
 
@@ -361,7 +361,7 @@ async def item_page(request: Request, owner: str, name: str, number: int, tab: s
     ctx = {
         "it": item, "d": detail, "entries": entries, "counts": counts, "full": full, "split": split,
         "tab": tab, "viewer": viewer, "labels": db.jl(item["labels"]), "rr": db.jl(item["review_requests"]),
-        "assignees": db.jl(item["assignees"]), "status": syncer.status, "patterns": patterns,
+        "assignees": db.jl(item["assignees"]), "status": {**syncer.status, "wait": syncer.gh.wait_note()}, "patterns": patterns,
         "body_hidden": item["author"] != viewer and matches_any(item["author"], patterns),
         "sum_min": summarizer.min_chars,
     }
@@ -526,7 +526,7 @@ async def api_sync():
 
 @app.get("/api/status")
 async def api_status():
-    return JSONResponse({**syncer.status, "rate_remaining": syncer.gh.rate_remaining})
+    return JSONResponse({**syncer.status, "rate_remaining": syncer.gh.rate_remaining, "wait": syncer.gh.wait_note()})
 
 
 @app.get("/go")

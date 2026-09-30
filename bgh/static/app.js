@@ -143,7 +143,7 @@
   if (st && !st.textContent.trim().startsWith("idle")) {
     const iv = setInterval(async () => {
       const s = await fetch("/api/status").then((r) => r.json());
-      st.textContent = s.state + (s.pending ? ` ${s.done}/${s.pending}` : "") + (s.error ? ` · ${s.error}` : "");
+      st.textContent = s.state + (s.pending ? ` ${s.done}/${s.pending}` : "") + (s.wait ? ` · ${s.wait}` : "") + (s.error ? ` · ${s.error}` : "");
       if (s.state === "idle") { clearInterval(iv); if (!item && !$("#items tr.row")) location.reload(); }
     }, 2000);
   }

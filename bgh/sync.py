@@ -156,6 +156,7 @@ TAG_QUERIES = {
 
 # Bump when the stored detail format changes; cached details get re-fetched in the background.
 DETAIL_VERSION = "2"
+DETAIL_WORKERS = 3  # concurrent background detail syncs
 
 # ---------------------------------------------------------------- helpers
 
@@ -532,20 +533,27 @@ class Syncer:
     async def sync_once(self):
         t0 = time.time()
         self.status.update(state="syncing lists", error=None)
+        await self.gh.wait_budget()
         for repo in self.cfg.repos:
             await self.sync_lists(repo)
         await self.sync_tags()
         todo = self._needs_detail()
         self.status.update(state="syncing details", pending=len(todo), done=0)
 
-        async def one(repo, number, kind):
-            try:
-                await self.sync_detail(repo, number, kind)
-            except Exception as e:  # keep going; one broken item shouldn't stall the rest
-                log.warning("detail sync failed for %s#%s: %s", repo, number, e)
-            self.status["done"] += 1
+        queue = iter(todo)
 
-        await asyncio.gather(*(one(*t) for t in todo))
+        async def worker():
+            for repo, number, kind in queue:
+                await self.gh.wait_budget()  # leave headroom for opened pages and other `gh` users
+                try:
+                    await self.sync_detail(repo, number, kind)
+                except Exception as e:  # keep going; one broken item shouldn't stall the rest
+                    log.warning("detail sync failed for %s#%s: %s", repo, number, e)
+                self.status["done"] += 1
+
+        # A few workers rather than everything at once: bursts trip GitHub's secondary rate limits,
+        # and it leaves request slots free for pages you open while the backfill runs.
+        await asyncio.gather(*(worker() for _ in range(DETAIL_WORKERS)))
         self.status.update(state="idle", last_sync=now_iso(), pending=0)
         log.info("sync done in %.1fs (%d details), rate remaining %s", time.time() - t0, len(todo), self.gh.rate_remaining)
 

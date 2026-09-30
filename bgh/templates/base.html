@@ -10,7 +10,7 @@
   <a href="/" class="brand">bgh</a>
   <form action="/go" method="get" class="goform"><input name="ref" id="goinput" placeholder=": #123 / owner/repo#123 / url" autocomplete="off"></form>
   {% block headerextra %}{% endblock %}
-  <span id="syncstatus" class="muted">{{ status.state }}{% if status.pending %} {{ status.done }}/{{ status.pending }}{% endif %}{% if status.last_sync %} · synced {{ status.last_sync|rel }} ago{% endif %}{% if status.error %} · <span class="err">{{ status.error }}</span>{% endif %}</span>
+  <span id="syncstatus" class="muted">{{ status.state }}{% if status.pending %} {{ status.done }}/{{ status.pending }}{% endif %}{% if status.last_sync %} · synced {{ status.last_sync|rel }} ago{% endif %}{% if status.wait %} · <span class="err">{{ status.wait }}</span>{% endif %}{% if status.error %} · <span class="err">{{ status.error }}</span>{% endif %}</span>
   <a href="#" id="helpbtn" class="muted">? keys</a>
 </header>
 <main>{% block main %}{% endblock %}</main>
