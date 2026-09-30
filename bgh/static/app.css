@@ -23,14 +23,14 @@ main { padding:8px 12px 60vh; }
 
 /* list */
 #items { border-collapse:collapse; width:100%; table-layout:fixed; }
-#items col.c-k { width:22px; } #items col.c-num { width:70px; } #items col.c-author { width:150px; } #items col.c-meta { width:170px; } #items col.c-when { width:44px; }
+#items col.c-k { width:22px; } #items col.c-num { width:70px; } #items col.c-num.multi { width:170px; } #items col.c-author { width:150px; } #items col.c-meta { width:170px; } #items col.c-when { width:44px; }
 #items td.title { overflow:hidden; } #items td.author { overflow:hidden; text-overflow:ellipsis; }
 #items td { padding:3px 6px; border-bottom:1px solid var(--line); vertical-align:top; }
 #items tr.sel td { background:var(--sel); }
 #items tr.unread .title a { font-weight:600; }
 #items tr:not(.unread) .title a { color:var(--fg); }
 #items tr.draft .title a { opacity:.65; }
-#items .k { width:14px; font-weight:700; } #items .num { color:var(--muted); white-space:nowrap; }
+#items .k { width:14px; font-weight:700; } #items .num { color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 #items .author { color:var(--muted); white-space:nowrap; } #items .meta, #items .when { white-space:nowrap; text-align:right; }
 .label { font-size:11px; padding:0 6px; border-radius:10px; margin-left:4px; white-space:nowrap; }
 .tag { font-size:10px; padding:0 4px; border:1px solid var(--line); border-radius:3px; margin-left:4px; color:var(--muted); }

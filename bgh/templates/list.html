@@ -10,12 +10,12 @@
 {% block help %}list:    j/k  move     enter/o  open     1-9  view     /  filter     r  sync now{% endblock %}
 {% block main %}
 <table id="items">
-<colgroup><col class="c-k"><col class="c-num"><col><col class="c-author"><col class="c-meta"><col class="c-when"></colgroup>
+<colgroup><col class="c-k"><col class="c-num{{ ' multi' if multi_repo }}"><col><col class="c-author"><col class="c-meta"><col class="c-when"></colgroup>
 {% for it in items %}
 <tr class="row{{ ' unread' if it.unread }}{{ ' draft' if it.is_draft }}" data-href="/{{ it.repo }}/{{ 'pull' if it.kind == 'pr' else 'issues' }}/{{ it.number }}"
     data-search="{{ it.number }} {{ it.title|lower }} {{ it.author|lower }} {% for l in it.labels_l %}{{ l.name|lower }} {% endfor %}">
   <td class="k">{% if it.kind == 'pr' %}{% if it.state == 'MERGED' %}<span class="merged">M</span>{% elif it.state == 'CLOSED' %}<span class="closed">C</span>{% elif it.is_draft %}<span class="muted">D</span>{% else %}<span class="open">P</span>{% endif %}{% else %}{% if it.state == 'OPEN' %}<span class="open">I</span>{% else %}<span class="closed">i</span>{% endif %}{% endif %}</td>
-  <td class="num">{% if multi_repo %}{{ it.repo.split('/')[1] }}{% endif %}#{{ it.number }}</td>
+  <td class="num"{% if multi_repo %} title="{{ it.repo }}#{{ it.number }}"{% endif %}>{% if multi_repo %}{{ it.repo.split('/')[1] }}{% endif %}#{{ it.number }}</td>
   <td class="title"><a href="/{{ it.repo }}/{{ 'pull' if it.kind == 'pr' else 'issues' }}/{{ it.number }}">{{ it.title }}</a>
     {% for l in it.labels_l if not l.hidden %}<span class="label" style="background:#{{ l.color }};color:{{ l.color|label_fg }}">{{ l.name }}</span>{% endfor %}
     {% for t in it.tags|sort %}<span class="tag tag-{{ t }}">{{ t.replace('_', ' ') }}</span>{% endfor %}
